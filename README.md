@@ -1,4 +1,4 @@
-# To-Do-List
+# To-Do App 
 A basic to-do list built using TypeScript &amp; Vanilla.JS
 
 
