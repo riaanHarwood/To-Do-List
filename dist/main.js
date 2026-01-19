@@ -1,46 +1,64 @@
-var _a;
-import { loadTasks, saveTasks } from "./storage";
-let tasks = loadTasks();
-const input = document.getElementById("taskInput");
-const list = document.getElementById("taskList");
-function render() {
+import { getTodos, saveTodos } from "./storage";
+const form = document.getElementById("todo-form");
+const input = document.getElementById("todo-input");
+const reminderInput = document.getElementById("reminder-input");
+const list = document.getElementById("todo-list");
+let todos = getTodos();
+renderTodos();
+/* Add Todo */
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const newTodo = {
+        id: crypto.randomUUID(),
+        title: input.value,
+        completed: false,
+        reminder: reminderInput.value || undefined,
+        createdAt: new Date().toISOString(),
+    };
+    todos.push(newTodo);
+    saveTodos(todos);
+    renderTodos();
+    form.reset();
+});
+function renderTodos() {
     list.innerHTML = "";
-    tasks.forEach((task) => {
+    todos.forEach((todo) => {
         const li = document.createElement("li");
-        li.textContent = task.title;
-        li.style.textDecoration = task.completed ? "line-through" : "none";
-        li.addEventListener("click", () => toggleTask(task.id));
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = todo.completed;
+        checkbox.addEventListener("change", () => toggleTodo(todo.id));
+        const span = document.createElement("span");
+        span.textContent = todo.title;
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "X";
-        deleteBtn.onclick = () => deleteTask(task.id);
-        li.appendChild(deleteBtn);
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
+        li.append(checkbox, span, deleteBtn);
+        if (todo.reminder) {
+            const reminder = document.createElement("small");
+            reminder.textContent = ` ⏰ ${new Date(todo.reminder).toLocaleString()}`;
+            li.appendChild(reminder);
+        }
         list.appendChild(li);
     });
 }
-function addTask(title) {
-    const newTask = {
-        id: Date.now(),
-        title,
-        completed: false,
-    };
-    tasks.push(newTask);
-    saveTasks(tasks);
-    render();
+function toggleTodo(id) {
+    todos = todos.map(todo => todo.id === id ? Object.assign(Object.assign({}, todo), { completed: !todo.completed }) : todo);
+    saveTodos(todos);
+    renderTodos();
 }
-function toggleTask(id) {
-    tasks = tasks.map((task) => task.id === id ? Object.assign(Object.assign({}, task), { completed: !task.completed }) : task);
-    saveTasks(tasks);
-    render();
+function deleteTodo(id) {
+    todos = todos.filter(todo => todo.id !== id);
+    saveTodos(todos);
+    renderTodos();
 }
-function deleteTask(id) {
-    tasks = tasks.filter((task) => task.id !== id);
-    saveTasks(tasks);
-    render();
-}
-(_a = document.getElementById("addBtn")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
-    if (input.value.trim()) {
-        addTask(input.value);
-        input.value = "";
-    }
-});
-render();
+setInterval(() => {
+    const now = new Date().toISOString();
+    todos.forEach(todo => {
+        if (todo.reminder && !todo.completed && todo.reminder <= now) {
+            alert(`Reminder: ${todo.title}`);
+            todo.reminder = undefined;
+            saveTodos(todos);
+        }
+    });
+}, 60000);
